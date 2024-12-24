@@ -1,5 +1,8 @@
-import http, { get } from 'k6/http';
+import http from 'k6/http';
+import { check } from 'k6';
 import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
+import { htmlReport } from "https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js";
+import { textSummary } from "https://jslib.k6.io/k6-summary/0.0.1/index.js";
 
 const hostname = 'https://dummyjson.com';
 let bearer;
@@ -37,12 +40,25 @@ export function apiTest() {
     const data = { title: title, price: price };
     let response = http.post(`${hostname}/products/add`, JSON.stringify(data), 
     { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${bearer}`} });
+    check(response, {
+        'is status 201': (r) => r.status === 201,
+    });
 }
 
 export function getToken() {
     const data = { username: 'emilys', password: 'emilyspass' };
     let response = http.post(`${hostname}/auth/login`, JSON.stringify(data), 
     { headers: { 'Content-Type': 'application/json' }} );
+    check(response, {
+        'is status 200': (r) => r.status === 200,
+    });
     const responseObj = response.json();
     bearer = responseObj.accessToken;
 }
+
+export function handleSummary(data) {
+    return {
+      "result.html": htmlReport(data),
+      stdout: textSummary(data, { indent: " ", enableColors: true }),
+    };
+  }
